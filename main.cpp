@@ -1,96 +1,81 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include <stdlib.h>
+#include <string>
 
 #include "Window.hpp"
+#include "Pipe.hpp"
+#include "Bird.hpp"
+#include "ShittyFont.hpp"
+#include "Sun.hpp"
 
-//cheeky globals	
-const int SCREEN_WIDTH = 400;
-const int SCREEN_HEIGHT = 400;
-
-void keyPress(SDL_Event * event, float * dy)
+bool checkCollision(const SDL_Rect * a, const SDL_Rect * b)
 {
-	if(event->key.keysym.sym == SDLK_w)
-	{
-		if(*dy > -5)
-		{
-			*dy -= 5;
-		}
-	}
+	return !(
+		a->y + a->h < b->y  ||//a is above b
+		a->x >= b->x + b->w ||//a is to the right of b
+		a->y >= b->y + b->h ||//a is below b
+		a->x + a->w < b->x    //a is to the left of b
+	);
 }
 
-struct Pipe
+bool checkCollision(const SDL_Rect * bird, const Pipe * pipe)
 {
-	SDL_Rect upper;
-	SDL_Rect lower;
-};
-
-void drawPipes(SDL_Renderer * renderer, Pipe * pipe, SDL_Texture * text)
-{
-	SDL_RenderCopy(renderer, text, nullptr, &pipe->lower);
-	SDL_RenderCopyEx(renderer, text, nullptr, &pipe->upper, 0.0, nullptr,SDL_FLIP_VERTICAL);
-};
-
-Pipe makePipe(int gap, int heightOfBottom)
-{
-	Pipe p;
-	
-	p.lower.w = 32;
-	p.lower.h = heightOfBottom;
-	p.lower.y = SCREEN_HEIGHT - heightOfBottom;
-	p.lower.x = SCREEN_WIDTH;
-	
-	p.upper.w = 32;
-	p.upper.h = SCREEN_HEIGHT - heightOfBottom - gap;
-	p.upper.y = 0;
-	p.upper.x = SCREEN_WIDTH;
-	
-	return p;
+	return checkCollision(bird, &pipe->lower) || checkCollision(bird, &pipe->upper);
 }
 
-void moveLeft(Pipe * pipe, int dx)
+void setup(Pipe * p, Bird * b, int * score, int screenWidth, int screenHeight)
 {
-	pipe->upper.x -= dx;
-	pipe->lower.x -= dx;
-
-	if(pipe->upper.x < 0)
-	{
-		int gap = (rand() % (SCREEN_HEIGHT/4)) + SCREEN_HEIGHT/4;
-		int height = (rand() % (SCREEN_HEIGHT/4)) + SCREEN_HEIGHT/4;
-		*pipe = makePipe(gap, height);
-	}
-}
-
-bool checkCollision(SDL_Rect * bird, Pipe * pipe)
-{
-
+	makePipe(p, screenWidth, screenHeight);
+	b->y = 0;
+	b->dy = 0;
+	b->dx = 3;
+	*score = 0;
 }
 
 int main()
 {
 	//variables for the window and the window itself
 	const char * title = "flappy bird";
+	const int screenWidth = 400;
+	const int gameHeight = 400;
+	const int screenHeight = 500;
 	bool running;
 	SDL_Event event;
-	Window window (title, SCREEN_WIDTH, SCREEN_HEIGHT, &running);
+
+	Window window (title, screenWidth, screenHeight, &running);
 
 	//seed
 	srand(time(nullptr));
 
-	//load textures
+	//load textures and rects
 	SDL_Texture * birdT = window.loadPNG("assets/bird.png");
 	SDL_Texture * wingT = window.loadPNG("assets/wing.png");
 	SDL_Texture * pipeT = window.loadPNG("assets/pipe.png");
+	SDL_Texture * bgT = window.loadPNG("assets/bg.png");
+	SDL_Texture * sunT = window.loadPNG("assets/sun.png");
+	const SDL_Rect bg = {0, 0, screenWidth, gameHeight};
+	const SDL_Rect bottomArea = {0, gameHeight, screenWidth, screenHeight - gameHeight};
+	ShittyFont sf (&window, "assets/font.png");
 
-	//game objects and logic
-	const int framesPerSecond = 30;
+	//timing variables
+	const float framesPerSecond = 60;
+	const float timePerFrame = 1000/framesPerSecond;
+	float endOfLastFrame = SDL_GetTicks();
+	float endOfThisFrame;
+	float timeElapsed;
 
-	//bird stuff
-	SDL_Rect birdPos = {32, 0, 64, 64};
-	float dy = 0, y = 0;
-
-	//pipe
-	Pipe pipe = makePipe(100, 200);
+	//game stuff
+	Bird bird;
+	Pipe pipe;
+	Sun sun;
+	int score;
+	auto setuplam = [&]()
+	{
+		setup(&pipe, &bird, &score, screenWidth, gameHeight);
+		moveLeft(&pipe, -screenWidth, screenWidth, screenHeight);
+	};
+	setuplam();
 
 	while(running)
 	{
@@ -103,37 +88,73 @@ int main()
 					running = false;
 					break;
 				case SDL_KEYDOWN:
-					keyPress(&event, &dy);
+					if(bird.dx)
+					{
+						flap(&bird);
+					}
+					else
+					{
+						if(event.key.keysym.sym == SDLK_r)
+						{
+							setuplam();
+						}
+					}
 					break;
 			}
 		}
 
 		//updates
-
 		//apply 'gravity'
-		if(dy < 4)
-		{
-			dy += 0.1;
-		}
-
+		gravity(&bird);
 		//update bird pos
-		y += dy;
-		birdPos.y = static_cast<int>(y);
+		move(&bird, gameHeight);
 		//update pipes
-		moveLeft(&pipe, 1);
+		moveLeft(&pipe, bird.dx, screenWidth, gameHeight);
+		//move sun
+		move(&sun, screenWidth);
+		//check collision
+		if(checkCollision(&bird.boundingBox, &pipe))
+		{
+			bird.dx = 0;
+		}		
 
 		//draw
-		SDL_SetRenderDrawColor(window.renderer(), 0xFF, 0xFF, 0xFF, 0xFF);
-		SDL_RenderClear(window.renderer());
-		SDL_RenderCopy(window.renderer(), birdT, nullptr, &birdPos);
-		SDL_RenderCopyEx(window.renderer(), wingT, nullptr, &birdPos, 0.0, nullptr, (dy > 0) ? SDL_FLIP_VERTICAL : SDL_FLIP_NONE);
+		//background
+		SDL_RenderCopy(window.renderer(), bgT, nullptr, &bg);
+		SDL_SetRenderDrawColor(window.renderer(), 0x40, 0x40, 0x40, 0xFF);
+		SDL_RenderFillRect(window.renderer(), &bottomArea);
+		//sun
+		draw(window.renderer(), sunT, &sun);
+		//draw the bird
+		drawBird(window.renderer(), &bird, birdT, wingT); 
+		//pipe
 		drawPipes(window.renderer(), &pipe, pipeT);
+
+		if(bird.dx)
+		{
+			sf.renderFont(20, gameHeight + 20, 32, std::to_string(score));
+			sf.renderFont(20, gameHeight + 52, 16, "press any key to flap");
+			score++;
+		}
+		else
+		{
+			sf.renderFont(10, gameHeight + 10, 16, "Game over press");
+			sf.renderFont(10, gameHeight + 26, 16, "r to play again");
+			sf.renderFont(10, gameHeight + 42, 16, "score " + std::to_string(score));
+		}
 
 		//present
 		SDL_RenderPresent(window.renderer());
 
 		//block
-		SDL_Delay(10);
+		endOfThisFrame = SDL_GetTicks();
+		timeElapsed = endOfThisFrame - endOfLastFrame;
+		if(timeElapsed < timePerFrame)
+		{
+			SDL_Delay(timePerFrame - timeElapsed);
+			endOfThisFrame = SDL_GetTicks();
+		}
+		endOfLastFrame = endOfThisFrame;
 	}
 
 
