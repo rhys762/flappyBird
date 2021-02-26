@@ -1,6 +1,12 @@
 #ifndef BIRD_HPP
 #define BIRD_HPP
 
+/*
+	Rhys Trueman || 14/02/2021 
+
+	Struct describing the player (a bird)
+*/
+
 #include <SDL2/SDL.h>
 
 struct Bird
@@ -10,6 +16,7 @@ struct Bird
 	//y position and change in y position respectively
 	float y = 0, dy = 0;
 	float dx = 0;
+	//used in animation
 	int flapTick = 0;
 };
 

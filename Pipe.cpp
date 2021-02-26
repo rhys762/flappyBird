@@ -3,15 +3,20 @@
 //draw the pipes to a rendererer
 void drawPipes(SDL_Renderer * renderer, Pipe * pipe, SDL_Texture * text)
 {
+	//draw the bottom pipe
 	SDL_RenderCopy(renderer, text, nullptr, &pipe->lower);
+	//draw the top pipe
 	SDL_RenderCopyEx(renderer, text, nullptr, &pipe->upper, 0.0, nullptr,SDL_FLIP_VERTICAL);
 };
 
 //fill a pipe struct with mostly random values
 void makePipe(Pipe * p, int screenWidth, int screenHeight)
 {
+	//gap is the space between the top and bottom pipe
 	int gap = (rand() % (screenHeight/4)) + screenHeight/4;
+	//height of the bottom pipe
 	int heightOfBottom = (rand() % (screenHeight/4)) + screenHeight/4;
+	//width of the pipes
 	const int width = 32;	
 
 	p->lower.w = width;

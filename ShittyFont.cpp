@@ -1,6 +1,5 @@
 #include "ShittyFont.hpp"
 
-
 //takes the renderer and the path to the png as arguements
 ShittyFont::ShittyFont(Window * window, const char * pathToPng)
 :mRenderer{window->renderer()}, mFont{window->loadPNG(pathToPng)}, mSrcRect{0, 0, 32, 32}, mDestRect{0,0,0,0}
@@ -11,19 +10,24 @@ void ShittyFont::renderFont(int xOffset, int yOffset, int widthHeight, const std
 {
 	mDestRect = {xOffset, yOffset, widthHeight, widthHeight};
 
+	//for each character in text
 	for(auto c : text)
 	{
+		//if it was a valid character
 		if(fillSrcRect(c))
 		{
+			//draw it
 			SDL_RenderCopy(mRenderer, mFont, &mSrcRect, &mDestRect);
 		}
+		//move the draw target onwards
 		mDestRect.x += mDestRect.w;
 	}
 }
 
-//update the source rect
+//update the source rect, returns true if it was a valid character, otherwise false
 bool ShittyFont::fillSrcRect(char c)
 {
+	//this is hardcoded to the png
 	if(c >= 'a' && c <= 'z')
 	{
 		c -= 'a';
@@ -39,6 +43,7 @@ bool ShittyFont::fillSrcRect(char c)
 	}
 	else
 	{
+		//invalid character
 		return false;
 	}
 	mSrcRect.x = 32 * c;

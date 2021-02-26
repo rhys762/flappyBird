@@ -1,6 +1,12 @@
 #ifndef SUN_HPP
 #define SUN_HPP
 
+/*
+	Rhys Trueman || 14/02/2021
+
+	struct representing the sun, a purely decorative object
+*/
+
 #include <SDL2/SDL.h>
 #include <iostream>
 
@@ -10,15 +16,10 @@ struct Sun
 	double rotation = 0;
 };
 
-void draw(SDL_Renderer * renderer, SDL_Texture * texture, Sun * s)
-{
-	SDL_RenderCopyEx(renderer, texture, nullptr, &s->pos, s->rotation, nullptr, SDL_FLIP_NONE);
-}
+//draw the sun to the renderer
+void draw(SDL_Renderer * renderer, SDL_Texture * texture, Sun * s);
 
-void move(Sun * s, int screenWidth)
-{
-	s->pos.x = (s->pos.x + 1) % screenWidth;
-	s->rotation += 1.0;
-}
+//move and rotate the sun
+void move(Sun * s, int screenWidth);
 
 #endif

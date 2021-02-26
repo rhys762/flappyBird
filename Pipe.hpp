@@ -1,6 +1,12 @@
 #ifndef PIPE_HPP
 #define PIPE_HPP
 
+/*
+	Rhys Trueman || 14/02/2021
+
+	Describes a pair of pipes that are obstacles for the player
+*/
+
 #include <SDL2/SDL.h>
 
 struct Pipe

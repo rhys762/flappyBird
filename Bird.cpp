@@ -3,9 +3,12 @@
 //make the bird 'flap'
 void flap(Bird * b)
 {
+	//we cant flap if were going terminal velocity upwards
 	if(b->dy > -5)
 	{
+		//change the velocity
 		b->dy -= 5;
+		//flap tick is used in the animation
 		b->flapTick = 10;
 	}
 }
@@ -13,6 +16,7 @@ void flap(Bird * b)
 //pull the dy to positive
 void gravity(Bird * b)
 {
+	//only modify if we not going our terminal down velocity
 	if(b->dy < 4)
 	{
 		b->dy += 0.3;
@@ -43,16 +47,9 @@ void move(Bird * b, int screenHeight)
 //draw the bird
 void drawBird(SDL_Renderer * renderer, Bird * b, SDL_Texture * birdTexture, SDL_Texture * wingTexture)
 {
-	double rotation = 0.0;/*
-	if(b->dy < -2)
-	{
-		rotation = -15.0;
-	}
-	else if(b->dy > 2)
-	{
-		rotation = 15.0;
-	}*/
-	rotation = b->dy * 5;
+	//we rotate the bird according to its vertical velocity
+	//ie if the bird is going up its angled up(ish)
+	double rotation = b->dy * 5;
 
 	//bird
 	SDL_RenderCopyEx(renderer, birdTexture, nullptr, &b->boundingBox, rotation, nullptr, SDL_FLIP_NONE);
